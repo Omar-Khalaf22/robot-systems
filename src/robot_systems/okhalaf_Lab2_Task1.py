@@ -1,3 +1,209 @@
+import time
+from statistics import median
+
+# --- HamBot import (package or same-folder fallback) ---
+try:
+    from robot_systems.robot import HamBot
+except Exception:
+    from robot import HamBot  # fallback if you run directly beside robot.py
+
+# ========== PHYSICAL MAZE SETTINGS ==========
+PHYSICAL = True
+SQUARE_M = 0.60 if PHYSICAL else 1.00
+CORRIDOR_W = SQUARE_M
+
+# ---------- Timing ----------
+DT = 0.032
+
+# ---------- Target / stop behavior ----------
+TARGET_M = 1.00          # stop 1.00 m from front wall
+STOP_ENTER = 0.98        # trigger stop once < 0.98 m
+# (We HOLD stop; no re-arm in Task 1)
+
+# ---------- Speed limits (RPM) ----------
+RPM_MAX = 60.0           # keep under hardware clamp (±75 recommended)
+BASE_RPM_MIN = 12.0      # creep speed near target
+BASE_RPM_MAX = 45.0      # cruise speed in corridor
+SPEED_K = 35.0           # rpm per meter (scales base speed with distance)
+
+# ---------- Side safety (meters) ----------
+SIDE_SLOW_M = 0.12
+SIDE_MIN_M  = 0.09
+
+# ---------- Approach safety zone ----------
+FRONT_SLOW_M = 1.20 if PHYSICAL else 1.80
+SAFETY_STOP_M = 0.20 if PHYSICAL else 0.25
+
+# ---------- LiDAR orientation ----------
+# Your previous code used index 180 as "front".
+# We'll express angles in world coords (0° = forward, +90° = left) and map
+# them to raw indices with this offset:
+RAW_FRONT_DEG = 180      # if ranges[180] ~= forward; adjust if needed
+
+# ---------- PID gains ----------
+# Centering PID: input is (left_m - right_m) in meters
+KP_C = 160.0
+KI_C = 0.0
+KD_C = 40.0
+I_MAX = 150.0
+D_ALPHA = 0.25           # derivative low-pass (0=no filter, 1=all filter)
+CORR_RPM_MAX = 20.0      # cap steering correction RPM
+
+# ---------- Motor polarity (fix wiring here only) ----------
+LEFT_POLARITY  = +1      # flip to -1 if your left motor is reversed
+RIGHT_POLARITY = +1      # flip to -1 if your right motor is reversed
+
+
+# ========== helpers ==========
+def clamp(x, lo, hi):
+    return lo if x < lo else hi if x > hi else x
+
+def _to_meters(x):
+    # Accept -1 / 0 / None as invalid
+    if x is None or x <= 0:
+        return None
+    # Many RPLidar wrappers return mm; indoors meters rarely > 10
+    return x / 1000.0 if x > 10.0 else x
+
+def _fan_median_meters(ranges, center_deg, half_deg=6, step_deg=1):
+    """Median of a small degree fan after converting to meters."""
+    n = len(ranges)
+    vals = []
+    for d in range(center_deg - half_deg, center_deg + half_deg + 1, step_deg):
+        raw_deg = (d + RAW_FRONT_DEG) % 360
+        idx = int(raw_deg * n / 360)
+        m = _to_meters(ranges[idx])
+        if m is not None:
+            vals.append(m)
+    return median(vals) if vals else None
+
+def lidar_front_m(ranges):  return _fan_median_meters(ranges,   0, half_deg=6)
+def lidar_left_m(ranges):   return _fan_median_meters(ranges, +90, half_deg=6)
+def lidar_right_m(ranges):  return _fan_median_meters(ranges, -90, half_deg=6)
+
+
+class PID:
+    def __init__(self, kp, ki, kd, dt, i_max=I_MAX, d_alpha=D_ALPHA):
+        self.kp, self.ki, self.kd = kp, ki, kd
+        self.dt = dt
+        self.i = 0.0
+        self.prev_e = 0.0
+        self.d = 0.0
+        self.i_max = abs(i_max)
+        self.d_alpha = d_alpha
+    def reset(self):
+        self.i = 0.0; self.prev_e = 0.0; self.d = 0.0
+    def step(self, e):
+        # integral (anti-windup clamp)
+        self.i += e * self.dt
+        self.i = clamp(self.i, -self.i_max, self.i_max)
+        # derivative (low-pass filtered)
+        d_raw = (e - self.prev_e) / self.dt if self.dt > 0 else 0.0
+        self.d = (1 - self.d_alpha) * d_raw + self.d_alpha * self.d
+        self.prev_e = e
+        return self.kp * e + self.ki * self.i + self.kd * self.d
+
+
+# ========== controller ==========
+def set_wheels(bot, rpm_left, rpm_right):
+    # Apply polarity and clamp
+    rpm_left  = clamp(rpm_left,  -RPM_MAX, RPM_MAX)  * LEFT_POLARITY
+    rpm_right = clamp(rpm_right, -RPM_MAX, RPM_MAX)  * RIGHT_POLARITY
+    bot.set_left_motor_speed(rpm_left)
+    bot.set_right_motor_speed(rpm_right)
+
+def controller_step(bot, center_pid, hold_stop):
+    ranges = bot.get_range_image()  # 360 values, typically in mm
+    front_m = lidar_front_m(ranges)
+    left_m  = lidar_left_m(ranges)
+    right_m = lidar_right_m(ranges)
+
+    # ---------- Safety: sensor invalid or dangerously close ----------
+    if front_m is None or (front_m is not None and front_m < SAFETY_STOP_M):
+        set_wheels(bot, 0.0, 0.0)
+        print(f"[SAFETY STOP] front={front_m}m  L={left_m} R={right_m}")
+        return True  # hold stop
+
+    # ---------- Task: stop at ~1.0 m (single-shot; hold stop) ----------
+    if not hold_stop and front_m < STOP_ENTER:
+        set_wheels(bot, 0.0, 0.0)
+        print(f"[TASK STOP @~1m] front={front_m:.3f}m")
+        return True  # now hold stop
+
+    if hold_stop:
+        # We already stopped for Task 1; keep holding
+        set_wheels(bot, 0.0, 0.0)
+        print(f"[HOLD] front={front_m:.3f}m  L={left_m} R={right_m}")
+        return True
+
+    # ---------- Base forward speed (slow down approaching target) ----------
+    # Scale with distance to target, but keep within bounds
+    base_rpm = BASE_RPM_MIN + SPEED_K * max(front_m - TARGET_M, 0.0)
+    base_rpm = clamp(base_rpm, BASE_RPM_MIN, BASE_RPM_MAX)
+
+    # Extra slow-down in front slow zone
+    if front_m < FRONT_SLOW_M:
+        base_rpm = min(base_rpm, 25.0)
+
+    # ---------- Side safety ----------
+    if (left_m  is not None and left_m  < SIDE_MIN_M) or \
+       (right_m is not None and right_m < SIDE_MIN_M):
+        # too close to a wall -> immediate stop
+        set_wheels(bot, 0.0, 0.0)
+        print(f"[SIDE STOP] L={left_m} R={right_m}  front={front_m:.3f}m")
+        return False
+
+    elif (left_m  is not None and left_m  < SIDE_SLOW_M) or \
+         (right_m is not None and right_m < SIDE_SLOW_M):
+        base_rpm = min(base_rpm, 25.0)
+
+    # ---------- Centering PID (left-right) -> steering correction RPM ----------
+    # Positive error means you're closer to the RIGHT wall (left distance larger),
+    # so you should yaw LEFT: i.e., subtract corr on left, add on right.
+    if left_m is None or right_m is None:
+        corr = 0.0
+    else:
+        e_center = (left_m - right_m)
+        u = center_pid.step(e_center)         # RPM units (gains tuned for meters)
+        corr = clamp(u, -CORR_RPM_MAX, CORR_RPM_MAX)
+
+    left_cmd  = base_rpm - corr
+    right_cmd = base_rpm + corr
+    set_wheels(bot, left_cmd, right_cmd)
+
+    # ---------- Debug ----------
+    def fmt(x): return f"{x:.3f}" if isinstance(x, float) else str(x)
+    print(f"front={fmt(front_m)}m  L={fmt(left_m)} R={fmt(right_m)}  "
+          f"e_center={(0.0 if (left_m is None or right_m is None) else (left_m-right_m)):+.3f}  "
+          f"base={base_rpm:.1f}rpm  corr={corr:+.1f}rpm  "
+          f"cmdL={left_cmd:+.1f} cmdR={right_cmd:+.1f}")
+    return False
+
+
+def run():
+    bot = HamBot(lidar_enabled=True, camera_enabled=False)
+    center_pid = PID(KP_C, KI_C, KD_C, DT)
+    hold_stop = False
+    try:
+        while True:
+            hold_stop = controller_step(bot, center_pid, hold_stop)
+            time.sleep(DT)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        set_wheels(bot, 0.0, 0.0)
+        try:
+            bot.disconnect_robot()
+        except Exception:
+            pass
+
+if __name__ == "__main__":
+    run()
+
+
+
+
+#----------------FIRST TEST---------------------
 """
 Lab 2 — Task 1 (Physical robot, 0.60 m corridor)
 Drive straight and stop at 1.00 m from the front wall using a PID in RPM space.
@@ -5,7 +211,7 @@ Adds side safety for the 0.60 m corridor so you don't scrape rails.
 
 Run on robot (repo root):  PYTHONPATH=src python -m robot_systems.okhalaf_Lab2_Task1
 """
-
+"""
 import time
 from statistics import median
 
@@ -143,8 +349,8 @@ def run():
 
 if __name__ == "__main__":
     run()
-
-
+"""
+#------------------------BREAK CODE------------
 
 """# okhalaf_Lab2_Task1.py  — HamBot direct, physical maze defaults (0.60 m tiles)
 import time, argparse
