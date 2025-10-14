@@ -23,6 +23,7 @@ CORRIDOR_W = SQUARE_M
 DT = 0.032
 TARGET_M = 1.00        # rubric target
 RPM_MAX = 60.0         # keep under hardware clamp (±75)
+FORWARD_SIGN = -1
 
 # Approach/safety tuned for 0.60 m corridor
 FRONT_SLOW_M = 1.20 if PHYSICAL else 1.80
@@ -119,8 +120,9 @@ def controller_step(bot, pid):
 
     # Final clamp and command
     u_rpm = clamp(u_rpm, -RPM_MAX, RPM_MAX)
-    bot.set_left_motor_speed(0-u_rpm)
-    bot.set_right_motor_speed(0-u_rpm)
+    cmd = FORWARD_SIGN * u_rpm
+    bot.set_left_motor_speed(cmd)
+    bot.set_right_motor_speed(cmd)
 
     print(f"front={front_m:.3f}m  e={e:+.3f}  L/R={u_rpm:+.1f} rpm  "
           f"sideL={left_m} sideR={right_m}")
