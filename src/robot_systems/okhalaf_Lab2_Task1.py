@@ -119,8 +119,8 @@ def controller_step(bot, pid):
 
     # Final clamp and command
     u_rpm = clamp(u_rpm, -RPM_MAX, RPM_MAX)
-    bot.set_left_motor_speed(u_rpm)
-    bot.set_right_motor_speed(u_rpm)
+    bot.set_left_motor_speed(0-u_rpm)
+    bot.set_right_motor_speed(0-u_rpm)
 
     print(f"front={front_m:.3f}m  e={e:+.3f}  L/R={u_rpm:+.1f} rpm  "
           f"sideL={left_m} sideR={right_m}")
