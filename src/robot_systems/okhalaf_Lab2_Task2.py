@@ -9,7 +9,7 @@ from robot_systems.robot import HamBot
 DT = 0.032
 
 #trigger of when to start turning away from wall. I found 1/3 of corridor dimension (0.6) works well
-SIDE_TARGET_M = 0.20
+SIDE_TARGET_M = 0.24
 
 #frwrd speeds
 BASE_CRUISE_RPM = 40.0
@@ -19,7 +19,7 @@ RPM_MAX         = 60.0
 
 #front speeds for when slowing for corner turns
 FRONT_SLOW_M  = 0.65   #start slowing
-FRONT_TURN_M  = 0.35   #90 deg turn
+FRONT_TURN_M  = 0.32  #90 deg turn
 FRONT_CLEAR_M = 0.55   #resume
 
 #edge-wrap vals for convex corners (determined based on tests)
@@ -27,7 +27,7 @@ EDGE_RISE_M        = 0.18  #if there's a suddenly large side distance change ==>
 EDGE_DIAG_CLEAR_M  = 0.45  #to prevent false triggers, wall must be open enough (diagonal in degrees)to wrap
 
 #side PID vals
-KP_A = 220.0
+KP_A = 195.0
 KI_A = 0.0
 KD_A = 40.0
 I_A_MAX = 200.0
@@ -148,7 +148,6 @@ def controller_step(bot, pid):
     bot.set_left_motor_speed(l_rpm)    # apply wheel cmds
     bot.set_right_motor_speed(r_rpm)
     controller_step.prev_side = d_side # remember last side distance for next tick
-
     print(f"st={state}  front={d_front}  {'L'}={d_side}  diag={d_diag}  -> L={l_rpm:+.1f} R={r_rpm:+.1f}") #log for debugging 
 
 def run():
