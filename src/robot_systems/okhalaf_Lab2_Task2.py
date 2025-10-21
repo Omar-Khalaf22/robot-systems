@@ -113,6 +113,10 @@ def controller_step(bot, pid):
             state = FSM.FOLLOW
 
     elif state == FSM.EDGE_WRAP:
+        if d_front is not None and d_front < FRONT_TURN_M:   #CHANGED (ADDED) ON TRY 4
+            state = FSM.FRONT_TURN   # <-- one change: front safety while wrapping CHANGED (ADDED) ON TRY 4
+        # done wrapping once side re-acquires near the target offset
+        
         #done wrapping once side re-acquires near the target offset
         if d_side is not None and abs(SIDE_TARGET_M - d_side) < 0.12:
             state = FSM.FOLLOW
