@@ -113,10 +113,10 @@ def controller_step(bot, pid):
             state = FSM.FOLLOW
 
     elif state == FSM.EDGE_WRAP:
-        if d_front is not None and d_front < FRONT_TURN_M:   #CHANGED (ADDED) ON TRY 4
+        """if d_front is not None and d_front < FRONT_TURN_M:   #CHANGED (ADDED) ON TRY 4
             state = FSM.FRONT_TURN   # <-- one change: front safety while wrapping CHANGED (ADDED) ON TRY 4
-        # done wrapping once side re-acquires near the target offset
-        
+        # done wrapping once side re-acquires near the target offset"""
+
         #done wrapping once side re-acquires near the target offset
         if d_side is not None and abs(SIDE_TARGET_M - d_side) < 0.12:
             state = FSM.FOLLOW
@@ -132,7 +132,7 @@ def controller_step(bot, pid):
             delta = 0.0              #fallback if side reading is invalid
         else:
             e_side = (SIDE_TARGET_M - d_side)  #positive if too far from wall
-            delta = pid.step(e_side) * (-1.0)   #-1 cuz following the left wall CHANGED ON 2ND TRY
+            delta = pid.step(e_side) * (1.0)   #-1 cuz following the left wall CHANGED ON 2ND TRY CHANGED ON 5TH TO OG
 
         l_rpm = clamp(base + delta, -RPM_MAX, RPM_MAX)
         r_rpm = clamp(base - delta, -RPM_MAX, RPM_MAX)
