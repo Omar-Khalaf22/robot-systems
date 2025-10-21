@@ -27,7 +27,7 @@ EDGE_RISE_M        = 0.18  #if there's a suddenly large side distance change ==>
 EDGE_DIAG_CLEAR_M  = 0.45  #to prevent false triggers, wall must be open enough (diagonal in degrees)to wrap
 
 #side PID vals
-KP_A = 190.0 #CHANGED ON TRY 1 FROM 220 
+KP_A = 185.0 #CHANGED ON TRY 1 FROM 220 
 KI_A = 0.0
 KD_A = 40.0
 I_A_MAX = 200.0
@@ -113,7 +113,7 @@ def controller_step(bot, pid):
             state = FSM.FOLLOW
 
     elif state == FSM.EDGE_WRAP:
-        """if d_front is not None and d_front < FRONT_TURN_M:   #CHANGED (ADDED) ON TRY 4
+        if d_front is not None and d_front < FRONT_TURN_M:   #CHANGED (ADDED) ON TRY 4
             state = FSM.FRONT_TURN   # <-- one change: front safety while wrapping CHANGED (ADDED) ON TRY 4
         # done wrapping once side re-acquires near the target offset"""
 
