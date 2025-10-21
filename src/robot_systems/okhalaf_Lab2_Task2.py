@@ -9,7 +9,7 @@ from robot_systems.robot import HamBot
 DT = 0.032
 
 #trigger of when to start turning away from wall. I found 1/3 of corridor dimension (0.6) works well
-SIDE_TARGET_M = 0.24 #CHANGED ON TRY 1 FROM 0.2
+SIDE_TARGET_M = 0.27 #CHANGED ON TRY 1 FROM 0.2
 
 #frwrd speeds
 BASE_CRUISE_RPM = 40.0
