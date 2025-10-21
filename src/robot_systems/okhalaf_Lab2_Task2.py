@@ -29,7 +29,7 @@ EDGE_DIAG_CLEAR_M  = 0.45  #to prevent false triggers, wall must be open enough 
 #side PID vals
 KP_A = 190.0 #CHANGED ON TRY 1 FROM 220 
 KI_A = 0.0
-KD_A = 50.0
+KD_A = 40.0
 I_A_MAX = 200.0
 D_A_ALPHA = 0.25
 
