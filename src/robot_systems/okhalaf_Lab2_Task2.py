@@ -141,7 +141,7 @@ def controller_step(bot, pid):
 
     else:  #move forward slowly while turning toward the wall to round the corner
         base = BASE_SLOW_RPM
-        delta = 0.75 * (TURN_RPM)   #softer turn 
+        delta = -0.75 * (TURN_RPM)   #softer turn CHANGED ON TRY 3 FROM 0.75 TO -0.75 TO ADJUST FOR THE PREVIOUS CHANGE FROM TRY 2
         l_rpm = clamp(base - delta, -RPM_MAX, RPM_MAX)
         r_rpm = clamp(base + delta, -RPM_MAX, RPM_MAX)
 
