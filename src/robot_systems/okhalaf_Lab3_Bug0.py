@@ -41,7 +41,7 @@ EDGE_DIAG_CLEAR_M   = 0.45
 KP_A, KI_A, KD_A    = 185.0, 0.0, 40.0
 I_A_MAX, D_A_ALPHA  = 200.0, 0.25
 
-FORWARD_SIGN=-1 
+FORWARD_SIGN=1
 
 def clamp(x, lo, hi): return lo if x < lo else hi if x > hi else x
 
@@ -216,7 +216,7 @@ def run():
             bot.set_right_motor_speed(r_rpm *FORWARD_SIGN)
 
             print(f"mode={'SEEK' if mode==Bug.GOAL_SEEK else 'WALL'}  "
-                  f"front={d_front}  err={err:+.3f}  -> L={l_rpm:+.1f} R={r_rpm:+.1f}")
+                  f"front={d_front}  err={err:+.3f}  -> L={l_rpm*FORWARD_SIGN:+.1f} R={r_rpm*FORWARD_SIGN:+.1f}")
 
             time.sleep(DT)
 
