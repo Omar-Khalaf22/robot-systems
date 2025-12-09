@@ -32,19 +32,27 @@ N_COLS = 4
 CELL_SIZE_M = 0.60   # 60 cm between cell centers (per maze figure)
 
 # cells that are not traversable at all (central obstacle)
-BLOCKED_CELLS = {(1, 1)}
+BLOCKED_CELLS = {}
 
 # optional explicit "wall" set for blocked edges between adjacent free cells.
 # Here the only obstacle is modeled as a blocked cell, so WALLS can be empty.
 # If you later want a more complex maze (like Webots maze8.xml), you can add
 # entries like: WALLS.add(frozenset({(r1,c1), (r2,c2)}))
-WALLS = set()
+WALLS = set( frozenset({(2, 3), (1, 3)}),
+    frozenset({(2, 3), (2, 2)}),
+    frozenset({(2, 2), (3, 2)}),
+    frozenset({(2, 1), (3, 1)}),
+    frozenset({(2, 2), (1, 2)}),
+    frozenset({(2, 1), (1, 1)}),
+    frozenset({(1, 1), (1, 0)}),
+    frozenset({(1, 1), (0, 1)}),
+    frozenset({(1, 2), (0, 2)}),)
 
 # start / goal cells in grid coordinates (row, col)
 # For the physical robot version I'm just hard-coding one start/goal pair.
 # Align the robot in the physical maze so that this matches reality.
-START_CELL = (2, 0)   # bottom-left corner
-GOAL_CELL  = (0, 2)   # top-right corner
+START_CELL = (2, 3)   # bottom-left corner
+GOAL_CELL  = (0, 3)   # top-right corner
 
 
 def in_bounds(cell):
