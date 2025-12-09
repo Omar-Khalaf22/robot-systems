@@ -289,7 +289,7 @@ def run():
         # For my runs I assume the robot is physically placed in START_CELL,
         # facing "north" (toward decreasing row index). Adjust start_heading
         # below if you physically start it facing east/south/west instead.
-        execute_path(bot, path, start_heading="N")
+        execute_path(bot, path, start_heading="S")
     except KeyboardInterrupt:
         pass
     finally:
