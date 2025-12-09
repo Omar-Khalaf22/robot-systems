@@ -149,7 +149,7 @@ WHEEL_RADIUS = 0.045   # m (same as Lab 1)
 WHEEL_BASE   = 0.184   # m (distance between wheel centers)
 
 DRIVE_RPM = 45.0       # forward speed for traversing a cell
-TURN_RPM  = 35.0       # wheel speed magnitude during in-place turns
+TURN_RPM  = 20.0       # wheel speed magnitude during in-place turns
 
 
 def drive_straight(bot, distance_m, rpm=DRIVE_RPM):
