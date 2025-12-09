@@ -159,7 +159,7 @@ def drive_straight(bot, distance_m, rpm=DRIVE_RPM):
     Assumes both wheels command the same RPM.
     """
     bot.reset_encoders()
-    bot.set_left_motor_speed(rpm)
+    bot.set_left_motor_speed(rpm*1.1)
     bot.set_right_motor_speed(rpm)
 
     while True:
