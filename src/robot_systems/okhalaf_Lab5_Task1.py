@@ -30,7 +30,7 @@ from robot_systems.robot import HamBot
 N_ROWS = 4
 N_COLS = 4
 CELL_SIZE_M = 0.60   # 60 cm between cell centers (per maze figure)
-TURN_GAIN = 0.70 
+TURN_GAIN = 0.65
 
 # cells that are not traversable at all (central obstacle)
 BLOCKED_CELLS = {}
