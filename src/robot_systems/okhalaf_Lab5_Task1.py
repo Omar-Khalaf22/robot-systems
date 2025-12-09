@@ -38,7 +38,7 @@ BLOCKED_CELLS = {}
 # Here the only obstacle is modeled as a blocked cell, so WALLS can be empty.
 # If you later want a more complex maze (like Webots maze8.xml), you can add
 # entries like: WALLS.add(frozenset({(r1,c1), (r2,c2)}))
-WALLS = set( frozenset({(2, 3), (1, 3)}),
+WALLS = {frozenset({(2, 3), (1, 3)}),
     frozenset({(2, 3), (2, 2)}),
     frozenset({(2, 2), (3, 2)}),
     frozenset({(2, 1), (3, 1)}),
@@ -46,7 +46,7 @@ WALLS = set( frozenset({(2, 3), (1, 3)}),
     frozenset({(2, 1), (1, 1)}),
     frozenset({(1, 1), (1, 0)}),
     frozenset({(1, 1), (0, 1)}),
-    frozenset({(1, 2), (0, 2)}))
+    frozenset({(1, 2), (0, 2)})}
 
 # start / goal cells in grid coordinates (row, col)
 # For the physical robot version I'm just hard-coding one start/goal pair.
