@@ -30,6 +30,7 @@ from robot_systems.robot import HamBot
 N_ROWS = 4
 N_COLS = 4
 CELL_SIZE_M = 0.60   # 60 cm between cell centers (per maze figure)
+TURN_GAIN = 0.90 
 
 # cells that are not traversable at all (central obstacle)
 BLOCKED_CELLS = {}
@@ -185,7 +186,7 @@ def rotate_in_place(bot, angle_rad, rpm=TURN_RPM):
     # how far each wheel must travel (along its circle) for a pure pivot:
     # d = θ * (wheel_base / 2)
     distance_per_wheel = abs(angle_rad) * (WHEEL_BASE / 2.0)
-    target_wheel_rad = distance_per_wheel / WHEEL_RADIUS
+    target_wheel_rad = TURN_GAIN * distance_per_wheel / WHEEL_RADIUS
 
     # sign decides left/right spin: left wheel backwards, right forwards for CCW
     sign = 1.0 if angle_rad >= 0.0 else -1.0
